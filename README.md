@@ -2,7 +2,7 @@
 
 An unofficial pytorch implementation of [_FastFlow: Unsupervised Anomaly Detection and Localization via 2D Normalizing Flows_](https://arxiv.org/abs/2111.07677) (Jiawei Yu et al.).
 
-As the paper doesn't give all implementation details, it's kinda difficult to reproduce its result. A very close AUROC is achieved in this repo. But there are still some confusions:
+As the paper doesn't give all implementation details, it's kinda difficult to reproduce its result. A very close AUROC is achieved in this repo. But there are still some confusions and a lot of guesses:
 - [ ] [Unmatched model A.d. parameter](https://github.com/gathierry/FastFlow/issues/2)
 - [ ] [Unmentioned but critical LayerNorm](https://github.com/gathierry/FastFlow/issues/3)
 
