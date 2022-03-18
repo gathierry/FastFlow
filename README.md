@@ -42,6 +42,8 @@ python main.py --cfg configs/resnet18.yaml --data path/to/mvtec-ad -cat [categor
 ```
 
 ## Performance
+As the training process is not stable, I paste both the performance of the last (500th) epoch and the best epoch.
+
 | AUROC (last/best) | wide-resnet-50 | resnet18        | DeiT            | CaiT |
 | ----------------- | -------------- | --------------- | --------------- | ---- |
 | bottle            | 0.987/0.989    | 0.975/0.979     | 0.931/0.959     |      |
