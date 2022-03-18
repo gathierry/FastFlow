@@ -19,7 +19,11 @@ def build_train_data_loader(args, config):
         is_train=True,
     )
     return torch.utils.data.DataLoader(
-        train_dataset, batch_size=const.BATCH_SIZE, num_workers=4
+        train_dataset,
+        batch_size=const.BATCH_SIZE,
+        shuffle=True,
+        num_workers=4,
+        drop_last=True,
     )
 
 
@@ -31,7 +35,11 @@ def build_test_data_loader(args, config):
         is_train=False,
     )
     return torch.utils.data.DataLoader(
-        test_dataset, batch_size=const.BATCH_SIZE, num_workers=4
+        test_dataset,
+        batch_size=const.BATCH_SIZE,
+        shuffle=False,
+        num_workers=4,
+        drop_last=False,
     )
 
 
@@ -44,7 +52,7 @@ def build_model(config):
         hidden_ratio=config["hidden_ratio"],
     )
     print(
-        "A.D. Param#: {}".format(
+        "Model A.D. Param#: {}".format(
             sum(p.numel() for p in model.parameters() if p.requires_grad)
         )
     )
@@ -73,7 +81,7 @@ def train_one_epoch(dataloader, model, optimizer, epoch):
         loss_meter.update(loss.item())
         if (step + 1) % const.LOG_INTERVAL == 0 or (step + 1) == len(dataloader):
             print(
-                "Epoch {} - Step {}: loss = {}({})".format(
+                "Epoch {} - Step {}: loss = {:.3f}({:.3f})".format(
                     epoch + 1, step + 1, loss_meter.val, loss_meter.avg
                 )
             )
@@ -84,8 +92,9 @@ def eval_once(dataloader, model):
     auroc_metric = metrics.ROC_AUC()
     for data, targets in dataloader:
         data, targets = data.cuda(), targets.cuda()
-        ret = model(data)
-        outputs = ret["anomlay_map"].cpu().detach()
+        with torch.no_grad():
+            ret = model(data)
+        outputs = ret["anomaly_map"].cpu().detach()
         outputs = outputs.flatten()
         targets = targets.flatten()
         auroc_metric.update((outputs, targets))
@@ -94,6 +103,7 @@ def eval_once(dataloader, model):
 
 
 def train(args):
+    os.makedirs(const.CHECKPOINT_DIR, exist_ok=True)
     checkpoint_dir = os.path.join(
         const.CHECKPOINT_DIR, "exp%d" % len(os.listdir(const.CHECKPOINT_DIR))
     )
@@ -108,7 +118,7 @@ def train(args):
     model.cuda()
 
     for epoch in range(const.NUM_EPOCHS):
-        train_one_epoch(train_dataloader, model, optimizer)
+        train_one_epoch(train_dataloader, model, optimizer, epoch)
         if (epoch + 1) % const.EVAL_INTERVAL == 0:
             eval_once(test_dataloader, model)
         if (epoch + 1) % const.CHECKPOINT_INTERVAL == 0:
@@ -118,7 +128,7 @@ def train(args):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                 },
-                checkpoint_dir,
+                os.path.join(checkpoint_dir, "%d.pt" % epoch),
             )
 
 

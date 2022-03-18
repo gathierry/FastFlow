@@ -54,7 +54,6 @@ class FastFlow(nn.Module):
             self.feature_extractor = timm.create_model(backbone_name, pretrained=True)
             channels = [768]
             scales = [16]
-            self.norms.append(self.feature_extractor.norm)
         else:
             self.feature_extractor = timm.create_model(
                 backbone_name,
@@ -65,20 +64,22 @@ class FastFlow(nn.Module):
             channels = self.feature_extractor.feature_info.channels()
             scales = self.feature_extractor.feature_info.reduction()
 
+            # for transformers, use their pretrained norm w/o grad
+            # for resnets, self.norms are trainable LayerNorm
+            self.norms = nn.ModuleList()
+            for in_channels, scale in zip(channels, scales):
+                self.norms.append(
+                    nn.LayerNorm(
+                        [in_channels, int(input_size / scale), int(input_size / scale)],
+                        elementwise_affine=True,
+                    )
+                )
+
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
 
-        # for transformers, use their pretrained norm w/o grad
-        # for resnets, self.norms are trainable LayerNorm
-        self.norms = nn.ModuleList()
         self.nf_flows = nn.ModuleList()
         for in_channels, scale in zip(channels, scales):
-            self.norms.append(
-                nn.LayerNorm(
-                    [in_channels, int(input_size / scale), int(input_size / scale)],
-                    elementwise_affine=True,
-                )
-            )
             self.nf_flows.append(
                 nf_fast_flow(
                     [in_channels, int(input_size / scale), int(input_size / scale)],
@@ -129,14 +130,14 @@ class FastFlow(nn.Module):
             features = [x]
         else:
             features = self.feature_extractor(x)
-            features = [self.norms[i](features) for i, feature in enumerate(features)]
+            features = [self.norms[i](feature) for i, feature in enumerate(features)]
 
         loss = 0
         outputs = []
         for i, feature in enumerate(features):
             output, log_jac_dets = self.nf_flows[i](feature)
-            loss += (
-                torch.mean(0.5 * torch.sum(output**2, dim=(1, 2, 3))) - log_jac_dets
+            loss += torch.mean(
+                0.5 * torch.sum(output**2, dim=(1, 2, 3)) - log_jac_dets
             )
             outputs.append(output)
         ret = {"loss": loss}

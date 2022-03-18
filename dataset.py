@@ -38,7 +38,7 @@ class MVTecDataset(torch.utils.data.Dataset):
             return image
         else:
             if os.path.dirname(image_file).endswith("good"):
-                target = torch.zeros(image.shape[-2:])
+                target = torch.zeros([1, image.shape[-2], image.shape[-1]])
             else:
                 target = Image.open(
                     image_file.replace("/test/", "/ground_truth/").replace(
