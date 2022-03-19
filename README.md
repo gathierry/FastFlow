@@ -19,7 +19,7 @@ We use [MVTec-AD](https://www.mvtec.com/company/research/datasets/mvtec-ad) to v
 
 The dataset is organized in the following structure:
 ```
-mvtec
+mvtec-ad
 |- bottle
 |  |- train
 |  |- test
